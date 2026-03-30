@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CogniBank Smart ATM — India</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e2d45;
+      --accent:#3b82f6;--accent2:#06d6a0;--danger:#ef4444;--warn:#f59e0b;
+      --text:#e2e8f0;--muted:#64748b;--card:#141d2e;
+      --overlay:rgba(0,0,0,0.75);--shadow:0 40px 80px rgba(0,0,0,0.6);
+      --saffron:#FF9933;--india-green:#138808;--india-navy:#000080;
+    }
+    body.light-mode{
+      --bg:#f0f4f8;--surface:#fff;--surface2:#e8edf5;--border:#d1dbe8;
+      --accent:#2563eb;--accent2:#059669;--danger:#dc2626;--warn:#d97706;
+      --text:#0f172a;--muted:#64748b;--card:#f8fafc;
+      --overlay:rgba(0,0,0,0.4);--shadow:0 40px 80px rgba(0,0,0,0.15);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sora',sans-serif;background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+      background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(59,130,246,.15),transparent),radial-gradient(ellipse 40% 30% at 80% 80%,rgba(6,214,160,.07),transparent);transition:background .3s;}
+    body.light-mode{background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(37,99,235,.08),transparent),radial-gradient(ellipse 40% 30% at 80% 80%,rgba(5,150,105,.05),transparent);}
+    .atm-wrap{width:100%;max-width:480px;background:var(--surface);border-radius:24px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow),0 0 0 1px rgba(59,130,246,.08);transition:background .3s,border-color .3s;}
+    @keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes slideInLeft{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .slide-in{animation:slideIn .28s cubic-bezier(.22,1,.36,1) both}
+    .slide-in-left{animation:slideInLeft .28s cubic-bezier(.22,1,.36,1) both}
+    .fade-up{animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both}
+
+    /* HEADER */
+    .atm-header{background:linear-gradient(135deg,#0f172a,#1e2d45);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+    body.light-mode .atm-header{background:linear-gradient(135deg,#1e293b,#334155);}
+    .atm-logo{font-size:17px;font-weight:700;color:#e2e8f0;letter-spacing:-.5px;display:flex;align-items:center;gap:8px;}
+    .atm-logo span{color:var(--accent);}
+    .india-stripe{width:3px;height:22px;background:linear-gradient(to bottom,var(--saffron) 33%,#fff 33%,#fff 66%,var(--india-green) 66%);border-radius:2px;}
+    .header-right{display:flex;align-items:center;gap:8px;}
+    .header-badge{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--accent2);font-family:'DM Mono',monospace;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);padding:3px 9px;border-radius:20px;}
+    .dot-pulse{width:6px;height:6px;background:var(--accent2);border-radius:50%;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .theme-toggle{background:none;border:1px solid rgba(255,255,255,.15);color:#e2e8f0;font-size:13px;width:28px;height:28px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .theme-toggle:hover{border-color:var(--accent);background:rgba(59,130,246,.1);}
+    .session-bar{height:3px;background:var(--border);overflow:hidden;}
+    .session-bar-fill{height:100%;background:var(--accent2);width:100%;transition:width 1s linear,background .5s;}
+    .session-bar-fill.warn{background:var(--warn);}.session-bar-fill.danger{background:var(--danger);}
+    .screen{padding:22px 20px;min-height:490px;}
+    .hidden{display:none!important;}
+
+    /* COMMON INPUTS */
+    .input-group{display:flex;flex-direction:column;gap:5px;}
+    .input-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;}
+    .input-field{background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;padding:11px 13px;border-radius:12px;outline:none;font-family:'Sora',sans-serif;transition:border-color .2s;width:100%;}
+    .input-field:focus{border-color:var(--accent);}
+    .input-field.mono{font-family:'DM Mono',monospace;letter-spacing:1px;}
+    .pin-wrap{position:relative;}
+    .pin-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .auth-error{font-size:12px;color:var(--danger);min-height:16px;}
+    .auth-btn{background:var(--accent);border:none;color:#fff;font-size:14px;font-weight:600;padding:13px;border-radius:13px;cursor:pointer;width:100%;font-family:'Sora',sans-serif;transition:all .2s;margin-top:2px;}
+    .auth-btn:hover{background:#2563eb;transform:translateY(-1px);}
+    .auth-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .auth-btn.secondary{background:none;border:1px solid var(--border);color:var(--muted);}
+    .auth-btn.secondary:hover{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.06);}
+    .auth-btn.danger-btn{background:var(--danger);}
+    .auth-btn.danger-btn:hover{background:#c01c1c;}
+
+    /* AUTH SCREEN */
+    .auth-wrap{display:flex;flex-direction:column;gap:18px;}
+    .auth-tabs{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:12px;border:1px solid var(--border);}
+    .auth-tab{flex:1;padding:8px;border:none;background:none;color:var(--muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:500;border-radius:9px;cursor:pointer;transition:all .2s;}
+    .auth-tab.active{background:var(--accent);color:#fff;}
+    .reg-step{display:flex;flex-direction:column;gap:14px;}
+    .step-indicator{display:flex;gap:6px;align-items:center;margin-bottom:2px;}
+    .step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s;}
+    .step-dot.active{background:var(--accent);transform:scale(1.3);}
+    .step-dot.done{background:var(--accent2);}
+    .verified-box{background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.25);border-radius:12px;padding:12px 14px;}
+    .verified-name{font-size:15px;font-weight:700;color:var(--accent2);}
+    .verified-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace;}
+    .pin-rules{font-size:11px;color:var(--muted);line-height:1.7;background:var(--surface2);border-radius:10px;padding:10px 12px;}
+    .pin-rules li{margin-left:14px;}
+
+    /* DASHBOARD */
+    .dashboard{display:flex;flex-direction:column;gap:14px;}
+    .welcome-row{display:flex;justify-content:space-between;align-items:center;}
+    .welcome-name{font-size:17px;font-weight:600;color:var(--text);}
+    .welcome-sub{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace;}
+    .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
+    .logout-btn:hover{border-color:var(--danger);color:var(--danger);}
+    .balance-card{background:linear-gradient(135deg,#1a2a4a,#0f1f38);border:1px solid rgba(59,130,246,.25);border-radius:18px;padding:18px 20px;}
+    body.light-mode .balance-card{background:linear-gradient(135deg,#1e3a5f,#1e40af);}
+    .balance-label{font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+    .balance-amount{font-size:34px;font-weight:700;color:#fff;letter-spacing:-1px;font-family:'DM Mono',monospace;}
+    .balance-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;font-family:'DM Mono',monospace;}
+    .trust-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.3);color:#06d6a0;font-size:10px;padding:3px 9px;border-radius:20px;margin-top:8px;}
+    .ai-suggestion{background:var(--card);border:1px solid rgba(59,130,246,.2);border-radius:13px;padding:14px 15px;display:flex;flex-direction:column;gap:8px;}
+    .ai-suggestion-header{display:flex;align-items:center;gap:9px;}
+    .ai-icon{font-size:18px;}
+    .ai-label{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
+    .ai-text{font-size:12px;color:var(--muted);line-height:1.6;}
+    .ai-chips{display:flex;gap:5px;flex-wrap:wrap;}
+    .ai-chip{font-size:10px;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;border:1px solid var(--border);color:var(--muted);background:var(--surface2);}
+    .ai-chip.green{border-color:rgba(6,214,160,.3);color:var(--accent2);background:rgba(6,214,160,.08);}
+    .ai-chip.yellow{border-color:rgba(245,158,11,.3);color:var(--warn);background:rgba(245,158,11,.08);}
+    .ai-chip.red{border-color:rgba(239,68,68,.3);color:var(--danger);background:rgba(239,68,68,.08);}
+    .ai-chip.blue{border-color:rgba(59,130,246,.3);color:var(--accent);background:rgba(59,130,246,.08);}
+    .ai-loading{display:flex;gap:4px;align-items:center;}
+    .ai-loading span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1.2s infinite;}
+    .ai-loading span:nth-child(2){animation-delay:.2s;}.ai-loading span:nth-child(3){animation-delay:.4s;}
+    @keyframes bounce{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+    .action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+    .action-btn{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 8px;color:var(--text);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center;font-family:'Sora',sans-serif;}
+    .action-btn .action-icon{font-size:18px;margin-bottom:5px;display:block;}
+    .action-btn:hover{border-color:var(--accent);background:rgba(59,130,246,.08);transform:translateY(-1px);}
+    .action-btn:active{transform:scale(.97);}
+    .action-btn.wide{grid-column:span 3;}
+    .action-btn.span2{grid-column:span 2;}
+    .mobile-nav{display:none;}
+    @media(max-width:480px){
+      .action-grid{display:none;}
+      .mobile-nav{display:flex;position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 2px;gap:2px;margin:10px -20px -22px;border-radius:0 0 24px 24px;overflow:hidden;}
+      .mobile-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-size:9px;font-family:'Sora',sans-serif;cursor:pointer;padding:6px 2px;border-radius:10px;transition:all .2s;}
+      .mobile-nav-btn .nav-icon{font-size:16px;}
+      .mobile-nav-btn:hover,.mobile-nav-btn.active{color:var(--accent);background:rgba(59,130,246,.08);}
+    }
+
+    /* PANELS */
+    .panel{display:flex;flex-direction:column;gap:14px;}
+    .panel-header{display:flex;align-items:center;gap:10px;}
+    .back-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+    .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+    .panel-title{font-size:16px;font-weight:600;color:var(--text);}
+    .amount-row{display:flex;align-items:center;gap:8px;}
+    .amount-sym{font-size:26px;color:var(--accent2);font-family:'DM Mono',monospace;font-weight:700;}
+    .amount-big{background:none;border:none;border-bottom:2px solid var(--border);color:var(--text);font-size:34px;font-weight:700;font-family:'DM Mono',monospace;width:100%;outline:none;padding:4px 0;transition:border-color .2s;}
+    .amount-big:focus{border-color:var(--accent);}
+    .quick-amounts{display:flex;gap:6px;flex-wrap:wrap;}
+    .quick-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:18px;cursor:pointer;transition:all .2s;font-family:'DM Mono',monospace;}
+    .quick-btn:hover{border-color:var(--accent);color:var(--accent);}
+    .security-check{background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.2);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--accent2);}
+    .confirm-btn{background:var(--accent);border:none;color:#fff;font-size:14px;font-weight:600;padding:13px;border-radius:13px;cursor:pointer;width:100%;font-family:'Sora',sans-serif;transition:all .2s;}
+    .confirm-btn:hover{background:#2563eb;transform:translateY(-1px);}
+    .confirm-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+    /* TRANSFER */
+    .recipient-search{position:relative;}
+    .recipient-list{position:absolute;top:100%;left:0;right:0;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-top:4px;max-height:190px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.3);}
+    .recipient-item{padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:11px;transition:background .15s;border-bottom:1px solid var(--border);}
+    .recipient-item:last-child{border-bottom:none;}
+    .recipient-item:hover{background:rgba(59,130,246,.08);}
+    .recipient-avatar{width:32px;height:32px;background:var(--surface2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .recipient-name{font-size:12px;font-weight:600;color:var(--text);}
+    .recipient-acct{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
+    .recipient-flag{font-size:14px;margin-left:auto;}
+    .recipient-selected{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.3);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:11px;}
+    .recipient-selected .clear-btn{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;}
+
+    /* INTERNATIONAL */
+    .country-tabs{display:flex;gap:5px;flex-wrap:wrap;}
+    .country-tab{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:11px;cursor:pointer;transition:all .2s;color:var(--muted);display:flex;align-items:center;gap:5px;}
+    .country-tab:hover{border-color:var(--accent);color:var(--accent);}
+    .country-tab.active{border-color:var(--accent);background:rgba(59,130,246,.1);color:var(--accent);}
+    .rate-box{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
+    .rate-val{font-family:'DM Mono',monospace;color:var(--text);font-weight:600;}
+    .converted-display{font-size:13px;color:var(--accent2);font-family:'DM Mono',monospace;text-align:right;margin-top:4px;}
+
+    /* BILLS */
+    .bill-category{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:6px;margin-bottom:4px;}
+    .biller-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:2px;}
+    .biller-list::-webkit-scrollbar{width:3px;}
+    .biller-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+    .biller-item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;cursor:pointer;transition:all .2s;}
+    .biller-item:hover{border-color:var(--accent);background:rgba(59,130,246,.06);}
+    .biller-item.selected{border-color:var(--accent);background:rgba(59,130,246,.1);}
+    .biller-logo{font-size:20px;width:38px;height:38px;background:var(--surface2);border-radius:9px;display:flex;align-items:center;justify-content:center;}
+    .biller-name{font-size:12px;font-weight:600;color:var(--text);}
+    .biller-acct{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
+    .biller-govt{margin-left:auto;font-size:9px;background:rgba(255,153,51,.12);color:var(--saffron);border:1px solid rgba(255,153,51,.3);padding:2px 7px;border-radius:10px;}
+
+    /* HISTORY */
+    .history-list{display:flex;flex-direction:column;gap:9px;max-height:350px;overflow-y:auto;padding-right:3px;}
+    .history-list::-webkit-scrollbar{width:3px;}
+    .history-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+    .export-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:11px;padding:6px 12px;border-radius:18px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;display:flex;align-items:center;gap:4px;}
+    .export-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+    .tx-item{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px 13px;display:flex;justify-content:space-between;align-items:center;}
+    .tx-item.tx-fraud{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04);}
+    .tx-left{display:flex;align-items:center;gap:10px;}
+    .tx-icon{font-size:16px;width:33px;height:33px;background:var(--surface2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .tx-name{font-size:12px;font-weight:500;color:var(--text);}
+    .tx-note{font-size:10px;color:var(--muted);margin-top:1px;}
+    .tx-date{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
+    .tx-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+    .tx-amount{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;}
+    .tx-amount.debit{color:var(--danger);}.tx-amount.credit{color:var(--accent2);}
+    .fraud-tag{font-size:9px;color:var(--danger);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);padding:2px 6px;border-radius:9px;font-family:'DM Mono',monospace;}
+    .empty-history{text-align:center;padding:36px 20px;color:var(--muted);font-size:12px;}
+    .empty-history .empty-icon{font-size:32px;margin-bottom:8px;display:block;}
+
+    /* AI INSIGHTS */
+    .insights-wrap{display:flex;flex-direction:column;gap:12px;}
+    .insight-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px;}
+    .insight-card.fraud-card{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.03);}
+    .insight-card-label{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+    .insight-card-label.red{color:var(--danger);}.insight-card-label.green{color:var(--accent2);}.insight-card-label.yellow{color:var(--warn);}
+    .insight-card-text{font-size:12px;color:var(--muted);line-height:1.6;}
+    .insight-bar-wrap{background:var(--surface2);border-radius:20px;height:5px;overflow:hidden;margin-top:7px;}
+    .insight-bar-fill{height:100%;border-radius:20px;transition:width .6s ease;}
+    .insight-bar-fill.green{background:var(--accent2);}.insight-bar-fill.yellow{background:var(--warn);}.insight-bar-fill.red{background:var(--danger);}
+
+    /* GOALS */
+    .goals-list{display:flex;flex-direction:column;gap:10px;}
+    .goal-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 14px;}
+    .goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+    .goal-name{font-size:13px;font-weight:600;color:var(--text);}
+    .goal-pct{font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;}
+    .goal-bar-wrap{background:var(--surface2);border-radius:20px;height:7px;overflow:hidden;margin-bottom:5px;}
+    .goal-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:20px;transition:width .5s ease;}
+    .goal-amounts{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+    .add-goal-form{display:flex;flex-direction:column;gap:9px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+    .add-goal-row{display:flex;gap:7px;}
+    .add-goal-btn{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--accent);font-size:12px;padding:9px 14px;border-radius:11px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;white-space:nowrap;}
+    .add-goal-btn:hover{background:rgba(59,130,246,.2);}
+
+    /* SUCCESS */
+    .success-wrap{text-align:center;padding:28px 0;display:flex;flex-direction:column;align-items:center;gap:14px;}
+    .success-circle{width:76px;height:76px;border-radius:50%;background:rgba(6,214,160,.1);border:2px solid var(--accent2);display:flex;align-items:center;justify-content:center;font-size:32px;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+    .success-title{font-size:20px;font-weight:700;color:var(--text);}
+    .success-msg{font-size:13px;color:var(--muted);max-width:260px;line-height:1.5;}
+    .success-amount{font-size:30px;font-weight:700;color:var(--accent2);font-family:'DM Mono',monospace;}
+
+    /* FRAUD MODAL */
+    .modal-overlay{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px);animation:fadeIn .2s;}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;max-width:330px;width:90%;animation:popIn .3s cubic-bezier(.34,1.56,.64,1);}
+    .modal-icon{font-size:36px;text-align:center;margin-bottom:10px;}
+    .modal-title{font-size:17px;font-weight:700;color:var(--text);text-align:center;margin-bottom:6px;}
+    .modal-msg{font-size:12px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:6px;}
+    .modal-warn{font-size:11px;color:var(--danger);text-align:center;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:7px 10px;margin-bottom:16px;}
+    .modal-btns{display:flex;gap:9px;}
+    .modal-btn{flex:1;padding:11px;border-radius:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
+    .modal-btn.cancel{background:var(--card);color:var(--muted);border:1px solid var(--border);}
+    .modal-btn.proceed{background:var(--danger);color:#fff;}
+    .modal-btn:hover{opacity:.85;}
+    .risk-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 9px;border-radius:18px;font-family:'DM Mono',monospace;font-weight:600;margin:0 auto 8px;width:fit-content;background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3);}
+
+    /* CHAT */
+    .chat-fab{position:fixed;bottom:26px;right:26px;z-index:200;width:50px;height:50px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,.4);display:none;align-items:center;justify-content:center;transition:all .25s;}
+    .chat-fab.visible{display:flex;}
+    .chat-fab:hover{transform:scale(1.08);}
+    .chat-panel{position:fixed;bottom:0;right:0;left:0;z-index:300;max-width:480px;margin:0 auto;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;height:400px;transform:translateY(100%);transition:transform .35s cubic-bezier(.22,1,.36,1);}
+    .chat-panel.open{transform:translateY(0);}
+    .chat-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);}
+    .chat-title{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px;}
+    .chat-close-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .chat-close-btn:hover{border-color:var(--danger);color:var(--danger);}
+    .chat-messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:9px;}
+    .chat-messages::-webkit-scrollbar{width:3px;}
+    .chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+    .chat-msg{max-width:82%;padding:9px 13px;border-radius:13px;font-size:12px;line-height:1.5;}
+    .chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px;}
+    .chat-msg.ai{align-self:flex-start;background:var(--card);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:3px;}
+    .chat-input-row{display:flex;gap:7px;padding:11px 14px;border-top:1px solid var(--border);}
+    .chat-input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:12px;padding:9px 13px;border-radius:11px;outline:none;font-family:'Sora',sans-serif;transition:border-color .2s;}
+    .chat-input:focus{border-color:var(--accent);}
+    .chat-send-btn{background:var(--accent);border:none;color:#fff;padding:9px 14px;border-radius:11px;cursor:pointer;font-size:15px;transition:all .2s;}
+    .chat-send-btn:hover{background:#2563eb;}
+    .toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:9px 18px;border-radius:18px;z-index:999;transition:transform .3s;pointer-events:none;white-space:nowrap;}
+    .toast.show{transform:translateX(-50%) translateY(0);}
+    .toast.success-toast{border-color:rgba(6,214,160,.4);color:var(--accent2);}
+    .toast.error-toast{border-color:rgba(239,68,68,.4);color:var(--danger);}
+    .toast.warn-toast{border-color:rgba(245,158,11,.4);color:var(--warn);}
+    .divider{height:1px;background:var(--border);}
+    .section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+  </style>
+</head>
+<body>
+
+<div class="atm-wrap">
+  <div class="atm-header">
+    <div class="atm-logo">
+      <div class="india-stripe"></div>
+      Cogni<span>Bank</span>
+      <span style="font-size:10px;color:var(--muted);font-weight:400">Smart ATM</span>
+    </div>
+    <div class="header-right">
+      <div class="header-badge"><div class="dot-pulse"></div>AI ACTIVE</div>
+      <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">☀️</button>
+    </div>
+  </div>
+  <div class="session-bar" id="session-bar" style="display:none">
+    <div class="session-bar-fill" id="session-bar-fill"></div>
+  </div>
+
+  <div class="screen">
+
+    <!-- ══ AUTH SCREEN ══ -->
+    <div id="auth-screen" class="auth-wrap">
+      <div style="text-align:center">
+        <div style="font-size:44px;margin-bottom:6px">🏦</div>
+        <div style="font-size:19px;font-weight:700;color:var(--text)">CogniBank Smart ATM</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Secure · AI-Powered · Indian Banking</div>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login"    onclick="switchAuthTab('login')">🔐 Login</button>
+        <button class="auth-tab"        id="tab-register" onclick="switchAuthTab('register')">🏛️ Activate Smart ATM</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="login-form">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="input-group">
+            <div class="input-label">Bank Account Number</div>
+            <input type="text" class="input-field mono" id="login-acct" placeholder="Enter your account number" maxlength="20"/>
+          </div>
+          <div class="input-group">
+            <div class="input-label">ATM PIN</div>
+            <div class="pin-wrap">
+              <input type="password" class="input-field" id="login-pin" placeholder="••••" maxlength="4" style="letter-spacing:8px;font-size:20px;text-align:center;font-family:'DM Mono',monospace" onkeydown="if(event.key==='Enter')doLogin()"/>
+              <button class="pin-eye" onclick="togglePin('login-pin',this)">👁</button>
+            </div>
+          </div>
+          <div class="auth-error" id="login-error"></div>
+          <button class="auth-btn" onclick="doLogin()">Login to ATM →</button>
+        </div>
+      </div>
+
+      <!-- REGISTER / ACTIVATION FORM -->
+      <div id="register-form" style="display:none">
+        <!-- Step indicators -->
+        <div class="step-indicator" id="step-indicator">
+          <div class="step-dot active" id="sdot0"></div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div class="step-dot" id="sdot1"></div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div class="step-dot" id="sdot2"></div>
+          <span style="font-size:10px;color:var(--muted);margin-left:8px" id="step-label">Step 1 of 3</span>
+        </div>
+
+        <!-- STEP 1: Verify bank account -->
+        <div id="reg-step1" class="reg-step">
+          <div style="font-size:12px;color:var(--muted);background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:10px 12px;line-height:1.6">
+            🏛️ <strong style="color:var(--accent)">Activate your existing bank account</strong> for CogniBank Smart ATM services. Enter your registered bank account number and date of birth to verify.
+          </div>
+          <div class="input-group">
+            <div class="input-label">Bank Account Number</div>
+            <input type="text" class="input-field mono" id="reg-acct" placeholder="Your existing bank account no." maxlength="20"/>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Date of Birth (for verification)</div>
+            <input type="date" class="input-field" id="reg-dob"/>
+          </div>
+          <div class="auth-error" id="reg-error1"></div>
+          <button class="auth-btn" onclick="verifyBankAccount()">Verify Account →</button>
+        </div>
+
+        <!-- STEP 2: Verified — show details, set PIN -->
+        <div id="reg-step2" class="reg-step" style="display:none">
+          <div class="verified-box">
+            <div style="font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">✅ Bank Account Verified</div>
+            <div class="verified-name" id="verified-name"></div>
+            <div class="verified-sub" id="verified-details"></div>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Set New ATM PIN</div>
+            <div class="pin-wrap">
+              <input type="password" class="input-field" id="reg-pin" placeholder="Choose 4-digit PIN" maxlength="4" style="letter-spacing:6px;font-size:18px;text-align:center;font-family:'DM Mono',monospace"/>
+              <button class="pin-eye" onclick="togglePin('reg-pin',this)">👁</button>
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-label">Confirm PIN</div>
+            <div class="pin-wrap">
+              <input type="password" class="input-field" id="reg-pin2" placeholder="Re-enter PIN" maxlength="4" style="letter-spacing:6px;font-size:18px;text-align:center;font-family:'DM Mono',monospace"/>
+              <button class="pin-eye" onclick="togglePin('reg-pin2',this)">👁</button>
+            </div>
+          </div>
+          <div class="pin-rules">
+            <strong style="color:var(--text);font-size:11px">PIN Rules:</strong>
+            <ul style="margin-top:4px">
+              <li>Exactly 4 digits (0–9 only)</li>
+              <li>All 4 digits must be <strong>unique</strong> (no repeating numbers)</li>
+              <li>No letters or special characters</li>
+              <li>Do not share your PIN with anyone</li>
+            </ul>
+          </div>
+          <div class="auth-error" id="reg-error2"></div>
+          <button class="auth-btn" onclick="activateSmartATM()">Activate Smart ATM →</button>
+          <button class="auth-btn secondary" onclick="resetRegistration()" style="margin-top:0">← Back</button>
+        </div>
+
+        <!-- STEP 3: Success -->
+        <div id="reg-step3" class="reg-step" style="display:none;text-align:center">
+          <div style="font-size:48px">🎉</div>
+          <div style="font-size:17px;font-weight:700;color:var(--accent2)">Smart ATM Activated!</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6" id="reg-success-msg"></div>
+          <button class="auth-btn" onclick="goToLoginAfterReg()">Login Now →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="main-screen" class="dashboard hidden">
+      <div class="welcome-row">
+        <div>
+          <div class="welcome-name" id="welcome-name">Hello!</div>
+          <div class="welcome-sub"  id="welcome-acct"></div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+      <div class="balance-card">
+        <div class="balance-label">Available Balance</div>
+        <div class="balance-amount" id="balance-display">₹0.00</div>
+        <div class="balance-sub"   id="acct-display"></div>
+        <div class="trust-badge">✦ AI Trust Score: <span id="trust-score">98%</span></div>
+      </div>
+      <div class="ai-suggestion">
+        <div class="ai-suggestion-header">
+          <div class="ai-icon">🧠</div>
+          <div class="ai-label">AI Cognitive Analysis</div>
+        </div>
+        <div class="ai-text" id="ai-suggestion-text">
+          <div class="ai-loading"><span></span><span></span><span></span></div>
+        </div>
+        <div class="ai-chips" id="ai-chips"></div>
+      </div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="showPanel('withdraw')"><span class="action-icon">💵</span>Withdraw</button>
+        <button class="action-btn" onclick="showPanel('deposit')"><span class="action-icon">📥</span>Deposit</button>
+        <button class="action-btn" onclick="showPanel('transfer')"><span class="action-icon">🔄</span>Domestic</button>
+        <button class="action-btn" onclick="showPanel('intl')"><span class="action-icon">🌍</span>International</button>
+        <button class="action-btn" onclick="showPanel('bills')"><span class="action-icon">🧾</span>Bill Pay</button>
+        <button class="action-btn" onclick="showPanel('goals')"><span class="action-icon">🎯</span>Goals</button>
+        <button class="action-btn" onclick="showPanel('history')"><span class="action-icon">📋</span>History</button>
+        <button class="action-btn" onclick="showPanel('changepin')"><span class="action-icon">🔑</span>Change PIN</button>
+        <button class="action-btn" onclick="showPanel('ministatement')"><span class="action-icon">🖨️</span>Mini Stmt</button>
+        <button class="action-btn wide" onclick="showPanel('insights')"><span class="action-icon">📊</span>AI Insights &amp; Fraud Report</button>
+      </div>
+      <div class="mobile-nav">
+        <button class="mobile-nav-btn" onclick="showPanel('withdraw')"><span class="nav-icon">💵</span>Cash</button>
+        <button class="mobile-nav-btn" onclick="showPanel('transfer')"><span class="nav-icon">🔄</span>Transfer</button>
+        <button class="mobile-nav-btn" onclick="showPanel('intl')"><span class="nav-icon">🌍</span>Intl</button>
+        <button class="mobile-nav-btn" onclick="showPanel('bills')"><span class="nav-icon">🧾</span>Bills</button>
+        <button class="mobile-nav-btn" onclick="showPanel('history')"><span class="nav-icon">📋</span>History</button>
+        <button class="mobile-nav-btn" onclick="showPanel('insights')"><span class="nav-icon">📊</span>AI</button>
+      </div>
+    </div>
+
+    <!-- ══ WITHDRAW ══ -->
+    <div id="withdraw-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">Withdraw Cash</div></div>
+      <div class="input-group">
+        <div class="input-label">Amount (<span class="cur-label">₹</span>)</div>
+        <div class="amount-row"><span class="amount-sym cur-sym">₹</span><input type="number" class="amount-big" id="withdraw-amount" value="500" min="1" step="1"/></div>
+        <div class="quick-amounts" id="withdraw-quick"></div>
+      </div>
+      <div class="security-check">✅ &nbsp;AI fraud monitoring active — transaction is secure</div>
+      <button class="confirm-btn" onclick="processWithdraw()">Confirm Withdrawal</button>
+    </div>
+
+    <!-- ══ DEPOSIT ══ -->
+    <div id="deposit-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">Deposit Cash</div></div>
+      <div class="input-group">
+        <div class="input-label">Amount (<span class="cur-label">₹</span>)</div>
+        <div class="amount-row"><span class="amount-sym cur-sym">₹</span><input type="number" class="amount-big" id="deposit-amount" value="1000" min="1" step="1"/></div>
+        <div class="quick-amounts" id="deposit-quick"></div>
+      </div>
+      <div class="security-check">✅ &nbsp;Deposit verified — funds available immediately</div>
+      <button class="confirm-btn" onclick="processDeposit()">Confirm Deposit</button>
+    </div>
+
+    <!-- ══ DOMESTIC TRANSFER ══ -->
+    <div id="transfer-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title" id="domestic-panel-title">Domestic Transfer</div></div>
+      <div style="font-size:11px;color:var(--muted);background:var(--surface2);border-radius:9px;padding:8px 12px" id="domestic-panel-hint">Transfers between accounts in the same country</div>
+      <div class="input-group">
+        <div class="input-label">Search Recipient</div>
+        <div class="recipient-search">
+          <input type="text" class="input-field" id="transfer-search" placeholder="Name or account number..." oninput="searchRecipients(this.value,'domestic')" autocomplete="off"/>
+          <div class="recipient-list hidden" id="recipient-list-domestic"></div>
+        </div>
+        <div id="recipient-selected-domestic" style="display:none"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Amount (<span class="cur-label">₹</span>)</div>
+        <div class="amount-row"><span class="amount-sym cur-sym">₹</span><input type="number" class="amount-big" id="transfer-amount" value="500" min="1"/></div>
+        <div class="quick-amounts" id="transfer-quick"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Remarks (optional)</div>
+        <input type="text" class="input-field" id="transfer-note" placeholder="e.g. Rent, Salary, Gift"/>
+      </div>
+      <div class="security-check">✅ &nbsp;Instant transfer, AI fraud detection active</div>
+      <button class="confirm-btn" id="transfer-confirm-btn" onclick="initiateTransfer()">Send Transfer</button>
+    </div>
+
+    <!-- ══ INTERNATIONAL TRANSFER ══ -->
+    <div id="intl-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">International Transfer</div></div>
+      <div class="input-group">
+        <div class="input-label">Select Country</div>
+        <div class="country-tabs" id="country-tabs">
+          <div class="country-tab" onclick="selectCountry('IN','INR',1)"     data-c="IN">🇮🇳 India</div>
+          <div class="country-tab" onclick="selectCountry('US','USD',84.5)"  data-c="US">🇺🇸 USA</div>
+          <div class="country-tab" onclick="selectCountry('GB','GBP',107.2)" data-c="GB">🇬🇧 UK</div>
+          <div class="country-tab" onclick="selectCountry('CN','CNY',11.6)"  data-c="CN">🇨🇳 China</div>
+          <div class="country-tab" onclick="selectCountry('IR','IRR',0.002)" data-c="IR">🇮🇷 Iran</div>
+          <div class="country-tab" onclick="selectCountry('IL','ILS',23.1)"  data-c="IL">🇮🇱 Israel</div>
+          <div class="country-tab" onclick="selectCountry('CA','CAD',62.4)"  data-c="CA">🇨🇦 Canada</div>
+          <div class="country-tab" onclick="selectCountry('AU','AUD',55.3)"  data-c="AU">🇦🇺 Australia</div>
+          <div class="country-tab" onclick="selectCountry('NZ','NZD',51.2)"  data-c="NZ">🇳🇿 NZ</div>
+          <div class="country-tab" onclick="selectCountry('AF','AFN',1.2)"   data-c="AF">🇦🇫 Afghanistan</div>
+        </div>
+      </div>
+      <div class="rate-box">
+        <span>Exchange Rate</span>
+        <span>1 <span id="intl-curr-label">USD</span> = <span class="rate-val" id="intl-rate">₹84.50</span></span>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Search Recipient (in selected country)</div>
+        <div class="recipient-search">
+          <input type="text" class="input-field" id="intl-search" placeholder="Name or account number..." oninput="searchRecipients(this.value,'intl')" autocomplete="off"/>
+          <div class="recipient-list hidden" id="recipient-list-intl"></div>
+        </div>
+        <div id="recipient-selected-intl" style="display:none"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Amount to Send (in foreign currency)</div>
+        <div class="amount-row">
+          <span class="amount-sym" id="intl-sym">$</span>
+          <input type="number" class="amount-big" id="intl-amount-foreign" value="100" min="1" oninput="calcIntlAmount()"/>
+        </div>
+      </div>
+      <div class="converted-display" id="intl-inr-display">= ₹8,450.00 will be deducted</div>
+      <div class="input-group">
+        <div class="input-label">Remarks (optional)</div>
+        <input type="text" class="input-field" id="intl-note" placeholder="Purpose of transfer"/>
+      </div>
+      <div class="security-check">✅ &nbsp;SWIFT/NEFT equivalent — cross-border AI monitoring</div>
+      <button class="confirm-btn" onclick="initiateIntlTransfer()">Send International Transfer</button>
+    </div>
+
+    <!-- ══ BILL PAYMENTS ══ -->
+    <div id="bills-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">Bill Payments</div></div>
+      <div class="bill-category">🏛️ Government Bills</div>
+      <div class="biller-list" id="biller-list">
+        <div class="biller-item" id="biller-electricity_gov" onclick="selectBiller('electricity_gov')"><div class="biller-logo">⚡</div><div><div class="biller-name">State Electricity Board</div><div class="biller-acct">DISCOM / BESCOM / MSEDCL</div></div><span class="biller-govt">GOVT</span></div>
+        <div class="biller-item" id="biller-water_gov" onclick="selectBiller('water_gov')"><div class="biller-logo">💧</div><div><div class="biller-name">Municipal Water Supply</div><div class="biller-acct">Corporation Water Bill</div></div><span class="biller-govt">GOVT</span></div>
+        <div class="biller-item" id="biller-gas_gov" onclick="selectBiller('gas_gov')"><div class="biller-logo">🔥</div><div><div class="biller-name">PNG / Piped Gas</div><div class="biller-acct">MGL / IGL / GAIL Gas</div></div><span class="biller-govt">GOVT</span></div>
+        <div class="biller-item" id="biller-property_tax" onclick="selectBiller('property_tax')"><div class="biller-logo">🏠</div><div><div class="biller-name">Property Tax</div><div class="biller-acct">Municipal Corporation</div></div><span class="biller-govt">GOVT</span></div>
+        <div class="biller-item" id="biller-income_tax" onclick="selectBiller('income_tax')"><div class="biller-logo">📋</div><div><div class="biller-name">Income Tax (Advance)</div><div class="biller-acct">CBDT — IT Department</div></div><span class="biller-govt">GOVT</span></div>
+        <div class="biller-item" id="biller-vehicle_tax" onclick="selectBiller('vehicle_tax')"><div class="biller-logo">🚗</div><div><div class="biller-name">Vehicle Road Tax</div><div class="biller-acct">RTO — State Transport</div></div><span class="biller-govt">GOVT</span></div>
+        <div class="biller-item" id="biller-municipal" onclick="selectBiller('municipal')"><div class="biller-logo">🏙️</div><div><div class="biller-name">Municipal Corp Fees</div><div class="biller-acct">Trade Licence / Misc</div></div><span class="biller-govt">GOVT</span></div>
+        <div style="height:1px;background:var(--border);margin:4px 0"></div>
+        <div class="bill-category" style="margin-top:2px">🏢 Private / Utility Bills</div>
+        <div class="biller-item" id="biller-internet" onclick="selectBiller('internet')"><div class="biller-logo">📡</div><div><div class="biller-name">Broadband Internet</div><div class="biller-acct">Jio / Airtel / BSNL</div></div></div>
+        <div class="biller-item" id="biller-mobile" onclick="selectBiller('mobile')"><div class="biller-logo">📱</div><div><div class="biller-name">Mobile Recharge / Postpaid</div><div class="biller-acct">Jio / Airtel / Vi / BSNL</div></div></div>
+        <div class="biller-item" id="biller-lpg" onclick="selectBiller('lpg')"><div class="biller-logo">🛢️</div><div><div class="biller-name">LPG Cylinder Booking</div><div class="biller-acct">Indane / HP / Bharat Gas</div></div></div>
+        <div class="biller-item" id="biller-insurance" onclick="selectBiller('insurance')"><div class="biller-logo">🛡️</div><div><div class="biller-name">Insurance Premium</div><div class="biller-acct">LIC / HDFC ERGO / SBI Life</div></div></div>
+      </div>
+      <div class="input-group" id="bill-amount-group" style="display:none">
+        <div class="input-label">Payment Amount (₹)</div>
+        <div class="amount-row"><span class="amount-sym">₹</span><input type="number" class="amount-big" id="bill-amount" value="500" min="1"/></div>
+      </div>
+      <div class="security-check" id="bill-security" style="display:none">✅ &nbsp;Biller verified — payment encrypted via BBPS</div>
+      <button class="confirm-btn" id="bill-confirm-btn" style="display:none" onclick="processBillPayment()">Pay Bill</button>
+    </div>
+
+    <!-- ══ CHANGE PIN ══ -->
+    <div id="changepin-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">Change ATM PIN</div></div>
+      <div class="input-group">
+        <div class="input-label">Current PIN</div>
+        <div class="pin-wrap">
+          <input type="password" class="input-field" id="cp-old" placeholder="••••" maxlength="4" style="letter-spacing:8px;font-size:20px;text-align:center;font-family:'DM Mono',monospace"/>
+          <button class="pin-eye" onclick="togglePin('cp-old',this)">👁</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">New PIN</div>
+        <div class="pin-wrap">
+          <input type="password" class="input-field" id="cp-new" placeholder="••••" maxlength="4" style="letter-spacing:8px;font-size:20px;text-align:center;font-family:'DM Mono',monospace"/>
+          <button class="pin-eye" onclick="togglePin('cp-new',this)">👁</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Confirm New PIN</div>
+        <div class="pin-wrap">
+          <input type="password" class="input-field" id="cp-new2" placeholder="••••" maxlength="4" style="letter-spacing:8px;font-size:20px;text-align:center;font-family:'DM Mono',monospace"/>
+          <button class="pin-eye" onclick="togglePin('cp-new2',this)">👁</button>
+        </div>
+      </div>
+      <div class="pin-rules">
+        <strong style="color:var(--text);font-size:11px">PIN Rules:</strong>
+        <ul style="margin-top:4px"><li>4 digits only</li><li>All 4 digits must be unique</li><li>Different from current PIN</li></ul>
+      </div>
+      <div class="auth-error" id="cp-error"></div>
+      <button class="confirm-btn" onclick="changePIN()">Change PIN</button>
+    </div>
+
+    <!-- ══ MINI STATEMENT ══ -->
+    <div id="ministatement-panel" class="panel hidden">
+      <div class="panel-header">
+        <button class="back-btn" onclick="backToDash()">←</button>
+        <div class="panel-title">Mini Statement</div>
+        <button class="export-btn" onclick="exportHistory()" style="margin-left:auto">🖨️ Print</button>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8">
+        <div style="color:var(--accent);font-weight:600;margin-bottom:8px;font-size:12px">COGNIBANK MINI STATEMENT</div>
+        <div id="mini-header"></div>
+        <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
+        <div id="mini-txns"></div>
+        <div style="border-top:1px dashed var(--border);margin:8px 0"></div>
+        <div id="mini-footer"></div>
+      </div>
+    </div>
+
+    <!-- ══ GOALS ══ -->
+    <div id="goals-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">Savings Goals</div></div>
+      <div class="goals-list" id="goals-list"></div>
+      <div class="add-goal-form">
+        <div class="section-label">Add New Goal</div>
+        <div class="input-group"><input type="text" class="input-field" id="goal-name" placeholder="Goal name (e.g. New Phone)"/></div>
+        <div class="add-goal-row">
+          <div class="input-group" style="flex:1"><input type="number" class="input-field" id="goal-target" placeholder="Target ₹" min="1"/></div>
+          <button class="add-goal-btn" onclick="addGoal()">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HISTORY ══ -->
+    <div id="history-panel" class="panel hidden">
+      <div class="panel-header">
+        <button class="back-btn" onclick="backToDash()">←</button>
+        <div class="panel-title">Transaction History</div>
+        <button class="export-btn" onclick="exportHistory()" style="margin-left:auto">⬇ Export</button>
+      </div>
+      <div class="history-list" id="history-list"><div class="empty-history"><span class="empty-icon">📂</span>No transactions yet</div></div>
+    </div>
+
+    <!-- ══ AI INSIGHTS ══ -->
+    <div id="insights-panel" class="panel hidden">
+      <div class="panel-header"><button class="back-btn" onclick="backToDash()">←</button><div class="panel-title">AI Insights &amp; Fraud Report</div></div>
+      <div class="insights-wrap">
+        <div class="insight-card"><div class="insight-card-label">📈 Spending Analysis</div><div class="insight-card-text" id="insight-spending"><div class="ai-loading"><span></span><span></span><span></span></div></div></div>
+        <div class="insight-card"><div class="insight-card-label green">💡 Savings Recommendation</div><div class="insight-card-text" id="insight-savings"><div class="ai-loading"><span></span><span></span><span></span></div></div></div>
+        <div class="insight-card"><div class="insight-card-label yellow">⚡ Behaviour Pattern</div><div class="insight-card-text" id="insight-behaviour"><div class="ai-loading"><span></span><span></span><span></span></div></div></div>
+        <div class="insight-card fraud-card"><div class="insight-card-label red">🚨 Fraud Report</div><div class="insight-card-text" id="insight-fraud"><div class="ai-loading"><span></span><span></span><span></span></div></div></div>
+        <div class="insight-card"><div class="insight-card-label">🔒 Security Status</div><div class="insight-card-text" id="insight-security"><div class="ai-loading"><span></span><span></span><span></span></div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ SUCCESS ══ -->
+    <div id="success-screen" class="success-wrap hidden">
+      <div class="success-circle">✓</div>
+      <div class="success-title">Successful!</div>
+      <div class="success-amount" id="success-amount"></div>
+      <div class="success-msg"    id="success-msg"></div>
+      <div id="success-ref" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;background:var(--card);border:1px solid var(--border);padding:6px 12px;border-radius:8px"></div>
+      <button class="confirm-btn" style="max-width:180px" onclick="backToDash()">Back to Menu</button>
+    </div>
+
+  </div>
+</div>
+
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()">💬</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <div class="chat-title">🧠 CogniBank AI Assistant</div>
+    <button class="chat-close-btn" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg ai">नमस्ते! I'm your CogniBank AI. Ask me about your balance, spending, bills, or international transfers!</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" class="chat-input" id="chat-input" placeholder="Ask anything..." onkeydown="if(event.key==='Enter')sendChat()"/>
+    <button class="chat-send-btn" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="fraud-modal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">AI Fraud Alert</div>
+    <div class="risk-badge">⚠ High Risk Transaction</div>
+    <div class="modal-msg" id="fraud-modal-msg"></div>
+    <div class="modal-warn">⚠️ Proceeding will <strong>record this as a fraud-override</strong> and flag it in your account report.</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel"  onclick="closeFraudModal()">Cancel (Safe)</button>
+      <button class="modal-btn proceed" onclick="confirmFraudOverride()">Proceed &amp; Accept Risk</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API='http://127.0.0.1:5000';
+let currentUser=null,currentBalance=0;
+let sessionTimer=null,sessionWarnTimer=null,sessionTickInt=null;
+let pendingFraud=null,allUsers=[],selectedRecipientDomestic=null,selectedRecipientIntl=null;
+let chatMessages=[],chatOpen=false,selectedBiller=null;
+let intlCountry='US',intlCurrency='USD',intlRate=84.5;
+const SESSION_MS=120000,SESSION_WARN=90000;
+
+const COUNTRY_FLAGS={'US':'🇺🇸','GB':'🇬🇧','CN':'🇨🇳','IR':'🇮🇷','IL':'🇮🇱','CA':'🇨🇦','AU':'🇦🇺','NZ':'🇳🇿','AF':'🇦🇫','IN':'🇮🇳'};
+const CURRENCY_SYMS={'USD':'$','GBP':'£','CNY':'¥','IRR':'﷼','ILS':'₪','CAD':'C$','AUD':'A$','NZD':'NZ$','AFN':'؋','INR':'₹'};
+
+// Accurate live-approximate exchange rates TO INR (1 unit of foreign = X INR)
+// For INR users sending abroad: divide. For foreign users sending to INR: multiply.
+const RATES_TO_INR={
+  'INR':1,
+  'USD':84.50,   // 1 USD = ₹84.50
+  'GBP':107.20,  // 1 GBP = ₹107.20
+  'CNY':11.65,   // 1 CNY = ₹11.65
+  'IRR':0.0020,  // 1 IRR = ₹0.002  (Iranian Rial is very low)
+  'ILS':23.10,   // 1 ILS = ₹23.10
+  'CAD':62.40,   // 1 CAD = ₹62.40
+  'AUD':55.30,   // 1 AUD = ₹55.30
+  'NZD':51.20,   // 1 NZD = ₹51.20
+  'AFN':1.20,    // 1 AFN = ₹1.20
+};
+
+// Format amount in the logged-in user's own currency
+function fmt(n){
+  const cur=(currentUser&&currentUser.currency)||'INR';
+  const sym=CURRENCY_SYMS[cur]||cur+' ';
+  const locale=cur==='INR'?'en-IN':'en-US';
+  return sym+Number(n).toLocaleString(locale,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// Format any amount in a given explicit currency
+function fmtFx(n,cur){
+  const sym=CURRENCY_SYMS[cur]||cur+' ';
+  return sym+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function now(){return new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true});}
+function genRef(){return'CB'+Date.now().toString(36).toUpperCase();}
+function setAmt(id,v){document.getElementById(id).value=v;}
+function updateBalanceDisplay(){document.getElementById('balance-display').textContent=fmt(currentBalance);}
+
+// Per-currency quick amounts for withdraw/deposit/transfer
+const QUICK_AMTS={
+  'INR':[[100,'₹100'],[500,'₹500'],[1000,'₹1,000'],[2000,'₹2,000'],[5000,'₹5,000'],[10000,'₹10,000']],
+  'USD':[[20,'$20'],[50,'$50'],[100,'$100'],[200,'$200'],[500,'$500'],[1000,'$1,000']],
+  'GBP':[[20,'£20'],[50,'£50'],[100,'£100'],[200,'£200'],[500,'£500'],[1000,'£1,000']],
+  'CNY':[[100,'¥100'],[500,'¥500'],[1000,'¥1,000'],[2000,'¥2,000'],[5000,'¥5,000'],[10000,'¥10,000']],
+  'IRR':[[10000,'﷼10K'],[50000,'﷼50K'],[100000,'﷼100K'],[500000,'﷼500K'],[1000000,'﷼1M'],[5000000,'﷼5M']],
+  'ILS':[[50,'₪50'],[100,'₪100'],[200,'₪200'],[500,'₪500'],[1000,'₪1,000'],[2000,'₪2,000']],
+  'CAD':[[20,'C$20'],[50,'C$50'],[100,'C$100'],[200,'C$200'],[500,'C$500'],[1000,'C$1,000']],
+  'AUD':[[20,'A$20'],[50,'A$50'],[100,'A$100'],[200,'A$200'],[500,'A$500'],[1000,'A$1,000']],
+  'NZD':[[20,'NZ$20'],[50,'NZ$50'],[100,'NZ$100'],[200,'NZ$200'],[500,'NZ$500'],[1000,'NZ$1,000']],
+  'AFN':[[500,'؋500'],[1000,'؋1,000'],[2000,'؋2,000'],[5000,'؋5,000'],[10000,'؋10,000'],[20000,'؋20,000']],
+};
+function updateCurrencyUI(){
+  const cur=(currentUser&&currentUser.currency)||'INR';
+  const sym=CURRENCY_SYMS[cur]||cur;
+  const amts=QUICK_AMTS[cur]||QUICK_AMTS['INR'];
+  // Update all currency symbol spans
+  document.querySelectorAll('.cur-sym').forEach(el=>el.textContent=sym);
+  document.querySelectorAll('.cur-label').forEach(el=>el.textContent=sym);
+  // Rebuild quick amount buttons for withdraw, deposit, transfer
+  const buildQuick=(containerId,inputId)=>{
+    const el=document.getElementById(containerId);
+    if(!el)return;
+    el.innerHTML=amts.map(([val,label])=>`<button class="quick-btn" onclick="setAmt('${inputId}',${val})">${label}</button>`).join('');
+  };
+  buildQuick('withdraw-quick','withdraw-amount');
+  buildQuick('deposit-quick', 'deposit-amount');
+  buildQuick('transfer-quick','transfer-amount');
+  // Update confirm button text
+  const txBtn=document.getElementById('transfer-confirm-btn');
+  if(txBtn) txBtn.textContent=`Send ${sym} Transfer`;
+}
+function toast(msg,type=''){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.className='toast show'+(type?' '+type+'-toast':'');
+  setTimeout(()=>{t.className='toast';},2800);
+}
+function togglePin(id,btn){
+  const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'👁':'🙈';
+}
+function validatePin(pin){
+  if(!/^\d{4}$/.test(pin)) return 'PIN must be exactly 4 digits (0-9 only)';
+  if(new Set(pin).size<4)  return 'PIN must have 4 unique digits — no repeating numbers';
+  return null;
+}
+
+// THEME
+function toggleTheme(){
+  const l=document.body.classList.toggle('light-mode');
+  document.getElementById('theme-btn').textContent=l?'🌙':'☀️';
+  try{localStorage.setItem('cb-theme',l?'light':'dark');}catch(e){}
+}
+try{if(localStorage.getItem('cb-theme')==='light'){document.body.classList.add('light-mode');document.getElementById('theme-btn').textContent='🌙';}}catch(e){}
+
+// AUTH TABS
+function switchAuthTab(tab){
+  document.getElementById('tab-login').classList.toggle('active',tab==='login');
+  document.getElementById('tab-register').classList.toggle('active',tab==='register');
+  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
+  document.getElementById('register-form').style.display=tab==='register'?'block':'none';
+  document.getElementById('login-error').textContent='';
+}
+
+// REGISTRATION STEPS
+function setRegStep(n){
+  ['reg-step1','reg-step2','reg-step3'].forEach((id,i)=>{document.getElementById(id).style.display=i===n?'flex':'none';});
+  ['sdot0','sdot1','sdot2'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.className='step-dot'+(i<n?' done':i===n?' active':'');
+  });
+  document.getElementById('step-label').textContent=`Step ${n+1} of 3`;
+}
+setRegStep(0);
+
+async function verifyBankAccount(){
+  const acct=document.getElementById('reg-acct').value.trim();
+  const dob =document.getElementById('reg-dob').value.trim();
+  const err =document.getElementById('reg-error1');
+  err.textContent='';
+  if(!acct){err.textContent='Enter your bank account number';return;}
+  if(!dob){err.textContent='Select your date of birth';return;}
+  try{
+    const res=await fetch(`${API}/verify-bank-account`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acct_no:acct,dob})});
+    const data=await res.json();
+    if(!res.ok){err.textContent=data.error||'Verification failed';return;}
+    document.getElementById('verified-name').textContent=data.name;
+    document.getElementById('verified-details').textContent=`Acct: ${data.acct_no} | Branch: ${data.branch} | IFSC: ${data.ifsc}`;
+    setRegStep(1);
+  }catch(e){err.textContent='Cannot connect to backend. Is app.py running?';}
+}
+
+async function activateSmartATM(){
+  const acct=document.getElementById('reg-acct').value.trim();
+  const pin =document.getElementById('reg-pin').value.trim();
+  const pin2=document.getElementById('reg-pin2').value.trim();
+  const err =document.getElementById('reg-error2');
+  err.textContent='';
+  const pinErr=validatePin(pin);
+  if(pinErr){err.textContent=pinErr;return;}
+  if(pin!==pin2){err.textContent='PINs do not match';return;}
+  try{
+    const res=await fetch(`${API}/activate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acct_no:acct,pin})});
+    const data=await res.json();
+    if(!res.ok){err.textContent=data.error||'Activation failed';return;}
+    document.getElementById('reg-success-msg').textContent=`${data.name}'s account (${data.acct_no}) is now activated for CogniBank Smart ATM services. You can login with your account number and PIN.`;
+    setRegStep(2);
+  }catch(e){err.textContent='Cannot connect to backend.';}
+}
+
+function resetRegistration(){
+  setRegStep(0);
+  document.getElementById('reg-acct').value='';
+  document.getElementById('reg-dob').value='';
+  document.getElementById('reg-error1').textContent='';
+  document.getElementById('reg-error2').textContent='';
+}
+
+function goToLoginAfterReg(){
+  const acct=document.getElementById('reg-acct').value.trim();
+  document.getElementById('login-acct').value=acct;
+  switchAuthTab('login');
+  resetRegistration();
+}
+
+// LOGIN
+async function doLogin(){
+  const acct=document.getElementById('login-acct').value.trim();
+  const pin =document.getElementById('login-pin').value.trim();
+  const err =document.getElementById('login-error');
+  err.textContent='';
+  if(!acct){err.textContent='Enter your account number';return;}
+  if(!pin||pin.length!==4){err.textContent='PIN must be 4 digits';return;}
+  try{
+    const res=await fetch(`${API}/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acct_no:acct,pin})});
+    const data=await res.json();
+    if(!res.ok){err.textContent=data.error||'Login failed';return;}
+    currentUser=data;currentBalance=data.balance;
+    loadAllUsers();showDashboard();
+  }catch(e){err.textContent='Cannot connect to backend. Is app.py running?';}
+}
+
+async function loadAllUsers(){
+  try{const res=await fetch(`${API}/users`);allUsers=await res.json();}catch(e){allUsers=[];}
+}
+
+// SESSION
+function startSessionTimer(){
+  clearSessionTimer();
+  const start=Date.now();
+  const bar=document.getElementById('session-bar'),fill=document.getElementById('session-bar-fill');
+  bar.style.display='block';fill.style.width='100%';fill.className='session-bar-fill';
+  sessionTickInt=setInterval(()=>{
+    const pct=Math.max(0,100-((Date.now()-start)/SESSION_MS)*100);
+    fill.style.width=pct+'%';
+    fill.className='session-bar-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },1000);
+  sessionWarnTimer=setTimeout(()=>toast('⚠️ Session expiring in 30 seconds...','warn'),SESSION_WARN);
+  sessionTimer    =setTimeout(()=>{toast('🔒 Session expired.','error');setTimeout(logout,1500);},SESSION_MS);
+}
+function resetSessionTimer(){if(currentUser)startSessionTimer();}
+function clearSessionTimer(){
+  clearTimeout(sessionTimer);clearTimeout(sessionWarnTimer);clearInterval(sessionTickInt);
+  document.getElementById('session-bar').style.display='none';
+}
+document.addEventListener('click',  resetSessionTimer);
+document.addEventListener('keydown',resetSessionTimer);
+
+// NAVIGATION
+const ALL_SCREENS=['auth-screen','main-screen','withdraw-panel','deposit-panel','transfer-panel','intl-panel','bills-panel','changepin-panel','ministatement-panel','goals-panel','history-panel','insights-panel','success-screen'];
+function hideAll(){ALL_SCREENS.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('hidden');});document.getElementById('chat-fab').classList.remove('visible');}
+function showAnim(id,dir='right'){
+  const el=document.getElementById(id);if(!el)return;
+  el.classList.remove('hidden','slide-in','slide-in-left','fade-up');void el.offsetWidth;
+  el.classList.add(dir==='left'?'slide-in-left':dir==='up'?'fade-up':'slide-in');
+}
+function showDashboard(){
+  hideAll();
+  const myCountry=currentUser.country||'IN';
+  const COUNTRY_NAMES={'IN':'India','US':'USA','GB':'UK','CN':'China','IR':'Iran','IL':'Israel','CA':'Canada','AU':'Australia','NZ':'New Zealand','AF':'Afghanistan'};
+  const cName=COUNTRY_NAMES[myCountry]||myCountry;
+  document.getElementById('welcome-name').textContent=`${myCountry==='IN'?'नमस्ते':'Hello'}, ${currentUser.name.split(' ')[0]}!`;
+  document.getElementById('welcome-acct').textContent=currentUser.name;
+  document.getElementById('acct-display').textContent=`Acct: ${currentUser.acct_no} | ${COUNTRY_FLAGS[myCountry]||'🌐'} ${currentUser.currency}`;
+  // Update domestic panel labels
+  const titleEl=document.getElementById('domestic-panel-title');
+  const hintEl =document.getElementById('domestic-panel-hint');
+  if(titleEl) titleEl.textContent=`Domestic Transfer — ${cName}`;
+  if(hintEl)  hintEl.textContent=`${COUNTRY_FLAGS[myCountry]||'🌐'} Only ${cName} CogniBank accounts are shown`;
+  // Reset so initIntlPanel auto-picks a valid foreign country
+  intlCountry=myCountry;
+  updateBalanceDisplay();
+  updateCurrencyUI();
+  showAnim('main-screen','up');
+  document.getElementById('chat-fab').classList.add('visible');
+  startSessionTimer();fetchAiSuggestion();
+}
+function showPanel(name){
+  hideAll();showAnim(name+'-panel');
+  if(name==='history')        renderHistory();
+  if(name==='insights')       fetchInsights();
+  if(name==='goals')          renderGoals();
+  if(name==='ministatement')  renderMiniStatement();
+  if(name==='intl')           initIntlPanel();
+  document.getElementById('session-bar').style.display='block';
+}
+function initIntlPanel(){
+  const myCountry=currentUser.country||'IN';
+  // Hide own-country tab, show all others
+  document.querySelectorAll('.country-tab').forEach(t=>{
+    t.style.display=(t.dataset.c===myCountry)?'none':'';
+  });
+  // Default first foreign country per sender's country
+  const DEFAULTS={
+    'IN':'US','US':'IN','GB':'IN','CN':'IN','IR':'IN',
+    'IL':'IN','CA':'IN','AU':'IN','NZ':'IN','AF':'IN',
+  };
+  const COUNTRY_CURRENCIES={
+    'IN':'INR','US':'USD','GB':'GBP','CN':'CNY','IR':'IRR',
+    'IL':'ILS','CA':'CAD','AU':'AUD','NZ':'NZD','AF':'AFN',
+  };
+  if(intlCountry===myCountry){
+    const defaultDest=DEFAULTS[myCountry]||'US';
+    selectCountry(defaultDest, COUNTRY_CURRENCIES[defaultDest]||'USD', 0);
+  } else {
+    // Refresh rate display for current selection
+    selectCountry(intlCountry, intlCurrency, 0);
+  }
+  // Update rate box label
+  const lbl=document.querySelector('.rate-box span:first-child');
+  if(lbl) lbl.textContent='Exchange Rate';
+}
+function backToDash(){showDashboard();}
+function logout(){
+  clearSessionTimer();currentUser=null;currentBalance=0;chatMessages=[];
+  selectedRecipientDomestic=null;selectedRecipientIntl=null;
+  closeFraudModal();closeChat();
+  document.getElementById('login-acct').value='';
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-error').textContent='';
+  hideAll();showAnim('auth-screen','left');
+}
+
+// INTERNATIONAL
+// intlRate = how much of sender's currency is needed to send 1 unit of recipient's currency
+function selectCountry(code,currency,_unused){
+  intlCountry=code;intlCurrency=currency;
+  const myCur=(currentUser&&currentUser.currency)||'INR';
+  const myRateToINR  =RATES_TO_INR[myCur]    ||1;
+  const theirRateToINR=RATES_TO_INR[currency] ||1;
+  // e.g. INR→USD: 1 USD costs ₹84.50  → intlRate=84.50
+  // e.g. USD→INR: 1 INR costs $0.0118 → intlRate=1/84.50
+  intlRate=theirRateToINR/myRateToINR;
+  document.querySelectorAll('.country-tab').forEach(t=>t.classList.toggle('active',t.dataset.c===code));
+  document.getElementById('intl-curr-label').textContent=currency;
+  document.getElementById('intl-rate').textContent=fmtFx(intlRate,myCur);
+  document.getElementById('intl-sym').textContent=CURRENCY_SYMS[currency]||currency;
+  clearRecipient('intl');calcIntlAmount();
+}
+function calcIntlAmount(){
+  const myCur=(currentUser&&currentUser.currency)||'INR';
+  const foreign=parseFloat(document.getElementById('intl-amount-foreign').value)||0;
+  // Amount in sender's currency = foreign amount * rate
+  const senderAmt=foreign*intlRate;
+  const deductEl=document.getElementById('intl-inr-display');
+  if(deductEl) deductEl.textContent=`= ${fmtFx(senderAmt,myCur)} will be deducted from your account`;
+}
+
+// RECIPIENT SEARCH
+// Domestic: only same-country accounts as the logged-in user
+// International: only accounts of the selected country, which must differ from the logged-in user's country
+function searchRecipients(query,mode){
+  const listId=mode==='intl'?'recipient-list-intl':'recipient-list-domestic';
+  const list=document.getElementById(listId);
+  if(!query||query.length<1){list.classList.add('hidden');return;}
+  const q=query.toLowerCase();
+  const myCountry=currentUser.country||'IN';
+  let matches=allUsers.filter(u=>u.id!==currentUser.id&&(u.name.toLowerCase().includes(q)||u.acct_no.includes(q)));
+  if(mode==='intl'){
+    // International: show only accounts of the selected intlCountry, and that country must NOT be the user's own country
+    matches=matches.filter(u=>u.country===intlCountry&&u.country!==myCountry);
+  } else {
+    // Domestic: show only accounts of the same country as the logged-in user
+    matches=matches.filter(u=>u.country===myCountry);
+  }
+  matches=matches.slice(0,6);
+  if(!matches.length){list.classList.add('hidden');return;}
+  list.innerHTML=matches.map(u=>`
+    <div class="recipient-item" onclick="selectRecipient(${u.id},'${u.name}','${u.acct_no}','${u.country}','${mode}')">
+      <div class="recipient-avatar">👤</div>
+      <div><div class="recipient-name">${u.name}</div><div class="recipient-acct">${u.acct_no}</div></div>
+      <span class="recipient-flag">${COUNTRY_FLAGS[u.country]||'🌐'}</span>
+    </div>`).join('');
+  list.classList.remove('hidden');
+}
+function selectRecipient(id,name,acct_no,country,mode){
+  const obj={id,name,acct_no,country};
+  if(mode==='intl'){selectedRecipientIntl=obj;}else{selectedRecipientDomestic=obj;}
+  document.getElementById('recipient-list-'+(mode==='intl'?'intl':'domestic')).classList.add('hidden');
+  document.getElementById(mode==='intl'?'intl-search':'transfer-search').style.display='none';
+  const selDiv=document.getElementById('recipient-selected-'+(mode==='intl'?'intl':'domestic'));
+  selDiv.style.display='flex';
+  selDiv.innerHTML=`<div class="recipient-selected"><div class="recipient-avatar">👤</div><div><div class="recipient-name">${name} ${COUNTRY_FLAGS[country]||''}</div><div class="recipient-acct">${acct_no}</div></div><button class="clear-btn" onclick="clearRecipient('${mode}')">✕</button></div>`;
+}
+function clearRecipient(mode){
+  if(mode==='intl'){
+    selectedRecipientIntl=null;
+    document.getElementById('intl-search').style.display='block';
+    document.getElementById('intl-search').value='';
+    document.getElementById('recipient-selected-intl').style.display='none';
+  }else{
+    selectedRecipientDomestic=null;
+    document.getElementById('transfer-search').style.display='block';
+    document.getElementById('transfer-search').value='';
+    document.getElementById('recipient-selected-domestic').style.display='none';
+  }
+}
+
+// API CALL
+async function callAPI(endpoint,body){
+  const res=await fetch(`${API}${endpoint}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return res.json();
+}
+
+// WITHDRAW
+async function processWithdraw(){
+  const amt=parseFloat(document.getElementById('withdraw-amount').value);
+  if(!amt||amt<=0){toast('Enter a valid amount','error');return;}
+  try{
+    const data=await callAPI('/transaction',{user_id:currentUser.id,amount:amt,type:'withdraw'});
+    if(data.error){toast('❌ '+data.error,'error');return;}
+    if(data.status==='fraud'){
+      pendingFraud=async()=>{
+        const d=await callAPI('/transaction',{user_id:currentUser.id,amount:amt,type:'withdraw',fraud_override:true});
+        if(d.error){toast('❌ '+d.error,'error');return;}
+        currentBalance=d.balance;currentUser.balance=d.balance;
+        showSuccess(-amt,`Withdrawal of ${fmt(amt)} completed.`,true);
+      };
+      showFraudModal(data.message);return;
+    }
+    currentBalance=data.balance;currentUser.balance=data.balance;
+    showSuccess(-amt,`Cash withdrawal of ${fmt(amt)} successful.`);
+  }catch(e){toast('❌ Backend not reachable. Is app.py running?','error');}
+}
+
+// DEPOSIT
+async function processDeposit(){
+  const amt=parseFloat(document.getElementById('deposit-amount').value);
+  if(!amt||amt<=0){toast('Enter a valid amount','error');return;}
+  try{
+    const data=await callAPI('/transaction',{user_id:currentUser.id,amount:amt,type:'deposit'});
+    if(data.error){toast('❌ '+data.error,'error');return;}
+    currentBalance=data.balance;currentUser.balance=data.balance;
+    showSuccess(amt,`Cash deposit of ${fmt(amt)} credited.`);
+  }catch(e){toast('❌ Backend not reachable.','error');}
+}
+
+// DOMESTIC TRANSFER
+async function initiateTransfer(){
+  if(!selectedRecipientDomestic){toast('Select a recipient','error');return;}
+  const amt=parseFloat(document.getElementById('transfer-amount').value);
+  const note=document.getElementById('transfer-note').value.trim();
+  if(!amt||amt<=0){toast('Enter a valid amount','error');return;}
+  try{
+    const data=await callAPI('/transfer',{sender_id:currentUser.id,recipient_acct:selectedRecipientDomestic.acct_no,amount:amt,note});
+    if(data.error){toast('❌ '+data.error,'error');return;}
+    if(data.status==='fraud'){
+      pendingFraud=async()=>{
+        const d=await callAPI('/transfer',{sender_id:currentUser.id,recipient_acct:selectedRecipientDomestic.acct_no,amount:amt,note,fraud_override:true});
+        if(d.error){toast('❌ '+d.error,'error');return;}
+        currentBalance=d.balance;currentUser.balance=d.balance;
+        showSuccess(-amt,`Sent ${fmt(amt)} to ${selectedRecipientDomestic.name}. ⚠️ Fraud flagged.`,true);
+        clearRecipient('domestic');
+      };
+      showFraudModal(data.message);return;
+    }
+    currentBalance=data.balance;currentUser.balance=data.balance;
+    showSuccess(-amt,`IMPS Transfer of ${fmt(amt)} sent to ${data.recipient_name}.`);
+    clearRecipient('domestic');document.getElementById('transfer-note').value='';
+  }catch(e){toast('❌ Backend not reachable.','error');}
+}
+
+// INTERNATIONAL TRANSFER
+async function initiateIntlTransfer(){
+  if(!selectedRecipientIntl){toast('Select an international recipient','error');return;}
+  const foreign=parseFloat(document.getElementById('intl-amount-foreign').value);
+  const note=document.getElementById('intl-note').value.trim();
+  if(!foreign||foreign<=0){toast('Enter a valid amount','error');return;}
+
+  const myCur=(currentUser&&currentUser.currency)||'INR';
+  const myRateToINR=RATES_TO_INR[myCur]||1;
+  const theirRateToINR=RATES_TO_INR[intlCurrency]||1;
+
+  // Amount to deduct from sender in their own currency
+  const senderDeduct=parseFloat((foreign*intlRate).toFixed(2));
+  // Amount in INR equivalent (used internally by backend)
+  const inrEquiv=parseFloat((senderDeduct*myRateToINR).toFixed(2));
+
+  const rateDesc=`1 ${intlCurrency} = ${fmtFx(intlRate,myCur)}`;
+
+  try{
+    const data=await callAPI('/intl-transfer',{
+      sender_id:currentUser.id,
+      recipient_acct:selectedRecipientIntl.acct_no,
+      amount_inr:inrEquiv,         // backend always stores INR equivalent
+      amount_foreign:foreign,
+      currency:intlCurrency,
+      note
+    });
+    if(data.error){toast('❌ '+data.error,'error');return;}
+    if(data.status==='fraud'){
+      pendingFraud=async()=>{
+        const d=await callAPI('/intl-transfer',{sender_id:currentUser.id,recipient_acct:selectedRecipientIntl.acct_no,amount_inr:inrEquiv,amount_foreign:foreign,currency:intlCurrency,note,fraud_override:true});
+        if(d.error){toast('❌ '+d.error,'error');return;}
+        currentBalance=d.balance;currentUser.balance=d.balance;
+        showSuccess(-senderDeduct,`Sent ${fmtFx(foreign,intlCurrency)} to ${selectedRecipientIntl.name} ${COUNTRY_FLAGS[intlCountry]}. ⚠️ Fraud flagged.`,true);
+        clearRecipient('intl');
+      };
+      showFraudModal(data.message);return;
+    }
+    currentBalance=data.balance;currentUser.balance=data.balance;
+    showSuccess(-senderDeduct,`Sent ${fmtFx(foreign,intlCurrency)} to ${data.recipient_name} ${COUNTRY_FLAGS[intlCountry]}.\nRate: ${rateDesc}`);
+    clearRecipient('intl');document.getElementById('intl-note').value='';document.getElementById('intl-amount-foreign').value='100';
+  }catch(e){toast('❌ Backend not reachable.','error');}
+}
+
+// BILL PAYMENTS
+const BILLERS_MAP={
+  electricity_gov:{name:'State Electricity Board',icon:'⚡',cat:'govt'},
+  water_gov:      {name:'Municipal Water Supply', icon:'💧',cat:'govt'},
+  gas_gov:        {name:'PNG / Piped Gas',         icon:'🔥',cat:'govt'},
+  property_tax:   {name:'Property Tax',            icon:'🏠',cat:'govt'},
+  income_tax:     {name:'Income Tax (Advance)',     icon:'📋',cat:'govt'},
+  vehicle_tax:    {name:'Vehicle Road Tax',         icon:'🚗',cat:'govt'},
+  municipal:      {name:'Municipal Corp Fees',      icon:'🏙️',cat:'govt'},
+  internet:       {name:'Broadband Internet',       icon:'📡',cat:'private'},
+  mobile:         {name:'Mobile Recharge/Postpaid', icon:'📱',cat:'private'},
+  lpg:            {name:'LPG Cylinder',             icon:'🛢️',cat:'private'},
+  insurance:      {name:'Insurance Premium',        icon:'🛡️',cat:'private'},
+};
+function selectBiller(id){
+  selectedBiller=id;
+  document.querySelectorAll('.biller-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('biller-'+id).classList.add('selected');
+  document.getElementById('bill-amount-group').style.display='flex';
+  document.getElementById('bill-security').style.display='flex';
+  document.getElementById('bill-confirm-btn').style.display='block';
+}
+async function processBillPayment(){
+  if(!selectedBiller){toast('Select a biller','error');return;}
+  const amt=parseFloat(document.getElementById('bill-amount').value);
+  if(!amt||amt<=0){toast('Enter a valid amount','error');return;}
+  const b=BILLERS_MAP[selectedBiller];
+  try{
+    const data=await callAPI('/transaction',{user_id:currentUser.id,amount:amt,type:'withdraw',note:'Bill: '+b.name});
+    if(data.error){toast('❌ '+data.error,'error');return;}
+    if(data.status==='fraud'){
+      pendingFraud=async()=>{
+        const d=await callAPI('/transaction',{user_id:currentUser.id,amount:amt,type:'withdraw',note:'Bill: '+b.name,fraud_override:true});
+        if(d.error){toast('❌ '+d.error,'error');return;}
+        currentBalance=d.balance;currentUser.balance=d.balance;
+        showSuccess(-amt,`Paid ${fmt(amt)} to ${b.name}. ⚠️ Flagged.`,true);
+      };
+      showFraudModal(data.message);return;
+    }
+    currentBalance=data.balance;currentUser.balance=data.balance;
+    showSuccess(-amt,`${b.name} payment of ${fmt(amt)} successful via BBPS.`);
+    selectedBiller=null;
+    document.querySelectorAll('.biller-item').forEach(el=>el.classList.remove('selected'));
+    document.getElementById('bill-amount-group').style.display='none';
+    document.getElementById('bill-security').style.display='none';
+    document.getElementById('bill-confirm-btn').style.display='none';
+  }catch(e){toast('❌ Backend not reachable.','error');}
+}
+
+// CHANGE PIN
+async function changePIN(){
+  const oldPin=document.getElementById('cp-old').value.trim();
+  const newPin=document.getElementById('cp-new').value.trim();
+  const newPin2=document.getElementById('cp-new2').value.trim();
+  const err=document.getElementById('cp-error');
+  err.textContent='';
+  if(!oldPin||oldPin.length!==4){err.textContent='Enter your current PIN';return;}
+  const pinErr=validatePin(newPin);
+  if(pinErr){err.textContent=pinErr;return;}
+  if(newPin!==newPin2){err.textContent='New PINs do not match';return;}
+  if(oldPin===newPin){err.textContent='New PIN must be different from current PIN';return;}
+  try{
+    const res=await fetch(`${API}/change-pin`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUser.id,old_pin:oldPin,new_pin:newPin})});
+    const data=await res.json();
+    if(!res.ok){err.textContent=data.error||'PIN change failed';return;}
+    toast('✅ PIN changed successfully!','success');
+    document.getElementById('cp-old').value='';document.getElementById('cp-new').value='';document.getElementById('cp-new2').value='';
+    setTimeout(()=>backToDash(),1500);
+  }catch(e){err.textContent='Backend not reachable.';}
+}
+
+// FRAUD MODAL
+function showFraudModal(reason){document.getElementById('fraud-modal-msg').textContent=reason;document.getElementById('fraud-modal').classList.remove('hidden');}
+function closeFraudModal(){document.getElementById('fraud-modal').classList.add('hidden');pendingFraud=null;}
+async function confirmFraudOverride(){document.getElementById('fraud-modal').classList.add('hidden');if(pendingFraud){await pendingFraud();pendingFraud=null;}}
+
+// SUCCESS
+function showSuccess(amt,msg,isFraud=false){
+  hideAll();
+  document.getElementById('session-bar').style.display='block';
+  showAnim('success-screen','up');
+  document.getElementById('success-amount').textContent=(amt>0?'+':'')+fmt(Math.abs(amt));
+  document.getElementById('success-amount').style.color=isFraud?'var(--warn)':amt>0?'var(--accent2)':'var(--danger)';
+  document.getElementById('success-msg').textContent=msg;
+  document.getElementById('success-ref').textContent='Ref: '+genRef()+' | '+now();
+  updateBalanceDisplay();
+  document.getElementById('chat-fab').classList.add('visible');
+}
+
+// MINI STATEMENT
+async function renderMiniStatement(){
+  try{
+    const res=await fetch(`${API}/transactions/${currentUser.id}`);
+    const txs=await res.json();
+    document.getElementById('mini-header').innerHTML=
+      `Account: ${currentUser.acct_no}<br>Name: ${currentUser.name}<br>Date: ${now()}`;
+    const last5=txs.slice(0,5);
+    if(!last5.length){document.getElementById('mini-txns').textContent='No transactions found.';return;}
+    document.getElementById('mini-txns').innerHTML=last5.map(t=>{
+      const dr=t.type==='deposit'||t.type==='credit';
+      return`<div style="display:flex;justify-content:space-between;gap:8px"><span>${t.timestamp.split('T')[0]||t.timestamp.slice(0,10)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px">${t.type.toUpperCase()}</span><span style="color:${dr?'var(--accent2)':'var(--danger)'}">${dr?'Cr':'Dr'} ${fmt(t.amount)}</span></div>`;
+    }).join('');
+    document.getElementById('mini-footer').innerHTML=`<strong style="color:var(--text)">Avail. Bal: ${fmt(currentBalance)}</strong>`;
+  }catch(e){document.getElementById('mini-txns').textContent='Could not load transactions.';}
+}
+
+// EXPORT HISTORY
+async function exportHistory(){
+  try{
+    const res=await fetch(`${API}/transactions/${currentUser.id}`);
+    const txs=await res.json();
+    if(!txs.length){toast('No transactions to export','error');return;}
+    const header=`COGNIBANK ACCOUNT STATEMENT\n${'='.repeat(60)}\nAccount Holder : ${currentUser.name}\nAccount Number : ${currentUser.acct_no}\nCurrency       : INR (₹)\nGenerated On   : ${now()}\n${'='.repeat(60)}\n`;
+    const rows=txs.map(t=>`${t.timestamp.padEnd(22)} ${t.type.padEnd(14)} ${(t.type==='deposit'||t.type==='credit'?'Cr':'Dr')} ${fmt(t.amount).padStart(14)}  ${t.note||''}${t.is_fraud?' [FRAUD FLAGGED]':''}`).join('\n');
+    const footer=`\n${'='.repeat(60)}\nAvailable Balance: ${fmt(currentBalance)}\n${'='.repeat(60)}`;
+    const blob=new Blob([header+rows+footer],{type:'text/plain'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`cognibank_${currentUser.acct_no}_stmt.txt`;
+    a.click();URL.revokeObjectURL(url);toast('Statement exported!','success');
+  }catch(e){toast('Export failed','error');}
+}
+
+// HISTORY
+async function renderHistory(){
+  const list=document.getElementById('history-list');
+  list.innerHTML='<div class="empty-history"><div class="ai-loading"><span></span><span></span><span></span></div></div>';
+  try{
+    const res=await fetch(`${API}/transactions/${currentUser.id}`);
+    const data=await res.json();
+    if(!data.length){list.innerHTML='<div class="empty-history"><span class="empty-icon">📂</span>No transactions yet</div>';return;}
+    const icons={withdraw:'💸',deposit:'📥',transfer:'🔄',credit:'📨',intl_transfer:'🌍',intl_credit:'🌐'};
+    list.innerHTML=data.map(tx=>`
+      <div class="tx-item${tx.is_fraud?' tx-fraud':''}">
+        <div class="tx-left">
+          <div class="tx-icon">${icons[tx.type]||'💳'}</div>
+          <div>
+            <div class="tx-name">${tx.type.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}</div>
+            ${tx.note?`<div class="tx-note">${tx.note}</div>`:''}
+            <div class="tx-date">${tx.timestamp}</div>
+          </div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount ${tx.type==='deposit'||tx.type==='credit'||tx.type==='intl_credit'?'credit':'debit'}">
+            ${tx.type==='deposit'||tx.type==='credit'||tx.type==='intl_credit'?'+':'-'}${fmt(tx.amount)}
+          </div>
+          ${tx.amount_foreign>0?`<div style="font-size:9px;color:var(--muted)">${fmtFx(tx.amount_foreign,tx.currency||'USD')}</div>`:''}
+          ${tx.is_fraud?'<span class="fraud-tag">⚠ FLAGGED</span>':''}
+        </div>
+      </div>`).join('');
+  }catch(e){list.innerHTML='<div class="empty-history" style="color:var(--danger)">⚠️ Could not load history.</div>';}
+}
+
+// GOALS
+function renderGoals(){
+  if(!currentUser.goals)currentUser.goals=[];
+  const list=document.getElementById('goals-list');
+  if(!currentUser.goals.length){list.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:14px">No goals yet.</div>';return;}
+  list.innerHTML=currentUser.goals.map((g,i)=>{
+    const pct=Math.min(100,Math.round((currentBalance/g.target)*100));
+    return`<div class="goal-item"><div class="goal-header"><div class="goal-name">${g.name}</div><div style="display:flex;align-items:center;gap:7px"><div class="goal-pct">${pct}%</div><button onclick="removeGoal(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">✕</button></div></div><div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${pct}%"></div></div><div class="goal-amounts"><span>${fmt(currentBalance)}</span><span>Target: ${fmt(g.target)}</span></div></div>`;
+  }).join('');
+}
+function addGoal(){
+  const name=document.getElementById('goal-name').value.trim();
+  const target=parseFloat(document.getElementById('goal-target').value);
+  if(!name)return toast('Enter a goal name','error');
+  if(!target||target<=0)return toast('Enter a valid target','error');
+  if(!currentUser.goals)currentUser.goals=[];
+  currentUser.goals.push({name,target});
+  document.getElementById('goal-name').value='';document.getElementById('goal-target').value='';
+  renderGoals();toast('Goal added!','success');
+}
+function removeGoal(i){currentUser.goals.splice(i,1);renderGoals();}
+
+// AI SUGGESTION
+async function fetchAiSuggestion(){
+  const el=document.getElementById('ai-suggestion-text'),chips=document.getElementById('ai-chips');
+  if(!el)return;
+  el.innerHTML='<div class="ai-loading"><span></span><span></span><span></span></div>';chips.innerHTML='';
+  try{
+    const [r1,r2]=await Promise.all([fetch(`${API}/transactions/${currentUser.id}`),fetch(`${API}/fraud-report/${currentUser.id}`)]);
+    const txs=await r1.json(),fraudData=await r2.json();
+    let spent=0,deposited=0,withdrawals=0,fraudCount=fraudData.user_fraud_transactions?.length||0;
+    txs.forEach(tx=>{if(tx.type==='withdraw'||tx.type==='transfer'||tx.type==='intl_transfer'){spent+=tx.amount;withdrawals++;}if(tx.type==='deposit')deposited+=tx.amount;});
+    const balPct=currentBalance>0?Math.min(100,Math.round((currentBalance/(currentBalance+spent+1))*100)):100;
+    let msg='';
+    if(fraudCount>0)          msg=`🚨 ${fraudCount} suspicious transaction(s) on your account. Review fraud report.`;
+    else if(spent>currentBalance) msg=`⚠️ Session spending ₹${(spent/100).toFixed(0)}00 exceeds balance. Consider a deposit.`;
+    else if(spent>50000)      msg=`⚠️ High outflow: ${fmt(spent)} across ${withdrawals} transactions. Balance health: ${balPct}%.`;
+    else if(withdrawals>3)    msg=`💡 ${withdrawals} withdrawals this session (${fmt(spent)}). Plan expenses to reduce trips.`;
+    else if(deposited>0&&spent===0) msg=`✅ Only deposits this session (+${fmt(deposited)}). Excellent financial discipline!`;
+    else if(spent===0)        msg=`✅ No outflows yet. Balance: ${fmt(currentBalance)}. Account is healthy.`;
+    else                      msg=`✅ Spending is normal. ${fmt(spent)} out, balance healthy at ${balPct}%.`;
+    el.textContent=msg;
+    const chipsData=[];
+    if(fraudCount>0) chipsData.push({label:`${fraudCount} Alert`,cls:'red'});
+    chipsData.push({label:balPct>=70?'Healthy Balance':balPct>=40?'Moderate Balance':'Low Balance',cls:balPct>=70?'green':balPct>=40?'yellow':'red'});
+    if(withdrawals===0) chipsData.push({label:'No Outflows',cls:'green'});
+    chipsData.push({label:fmt(spent)+' spent',cls:'blue'});
+    chips.innerHTML=chipsData.map(c=>`<span class="ai-chip ${c.cls}">${c.label}</span>`).join('');
+    const trust=fraudCount>0?Math.max(55,98-(fraudCount*15)):98;
+    const ts=document.getElementById('trust-score');if(ts)ts.textContent=trust+'%';
+  }catch(e){el.textContent=`Welcome, ${currentUser.name.split(' ')[0]}! Balance: ${fmt(currentBalance)}.`;}
+}
+
+// AI INSIGHTS
+async function fetchInsights(){
+  ['insight-spending','insight-savings','insight-behaviour','insight-fraud','insight-security'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div class="ai-loading"><span></span><span></span><span></span></div>';});
+  let txs=[],fraudData={user_fraud_transactions:[],system_total_fraud_count:0};
+  try{const r1=await fetch(`${API}/transactions/${currentUser.id}`);txs=await r1.json();const r2=await fetch(`${API}/fraud-report/${currentUser.id}`);fraudData=await r2.json();}catch(e){}
+  let totalSpent=0,totalIn=0,withdrawCount=0;
+  txs.forEach(t=>{if(t.type==='withdraw'||t.type==='transfer'||t.type==='intl_transfer'){totalSpent+=t.amount;withdrawCount++;}if(t.type==='deposit'||t.type==='credit')totalIn+=t.amount;});
+  const fraudTxs=fraudData.user_fraud_transactions||[],fraudCount=fraudTxs.length,sysTotal=fraudData.system_total_fraud_count||0;
+  const netFlow=totalIn-totalSpent,balPct=currentBalance>0?Math.min(100,Math.round((currentBalance/(currentBalance+totalSpent+1))*100)):100;
+  const spendEl=document.getElementById('insight-spending');
+  if(spendEl)spendEl.innerHTML=`Total outflow: <strong style="color:var(--danger)">${fmt(totalSpent)}</strong> (${withdrawCount} transactions)<br>Total inflow: <strong style="color:var(--accent2)">${fmt(totalIn)}</strong><br>Net flow: <strong style="color:${netFlow>=0?'var(--accent2)':'var(--danger)'}">${netFlow>=0?'+':''}${fmt(netFlow)}</strong><div class="insight-bar-wrap"><div class="insight-bar-fill ${balPct>=60?'green':balPct>=30?'yellow':'red'}" style="width:${balPct}%"></div></div><div style="font-size:10px;color:var(--muted);margin-top:4px">Balance health: ${balPct}%</div>`;
+  const fraudEl=document.getElementById('insight-fraud');
+  if(fraudEl){
+    if(!fraudCount)fraudEl.innerHTML=`<strong style="color:var(--accent2)">✅ No fraud detected</strong><br><br>All ${txs.length} transactions are clean.<br><span style="font-size:10px;color:var(--muted)">System-wide fraud events: ${sysTotal}</span>`;
+    else fraudEl.innerHTML=`<strong style="color:var(--danger)">⚠️ ${fraudCount} fraud-flagged transaction(s)</strong>`+fraudTxs.map(t=>`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:9px 11px;margin-top:7px"><div style="font-size:11px;font-weight:600;color:var(--danger)">${t.type.toUpperCase()} — ${fmt(t.amount)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${t.timestamp}${t.note?' | '+t.note:''}</div><div style="font-size:10px;color:var(--danger);margin-top:3px">⚠ User overrode fraud warning</div></div>`).join('')+`<br><span style="font-size:10px;color:var(--muted)">System-wide fraud events: ${sysTotal}</span>`;
+  }
+  const txSummary=txs.length?txs.slice(0,8).map(t=>`${t.type}:${fmt(t.amount)}${t.is_fraud?' [FLAGGED]':''}`).join(';'):'No transactions.';
+  const prompt=`You are an advanced financial AI for CogniBank India (INR). User: ${currentUser.name}, Balance: ${fmt(currentBalance)}, Total spent: ${fmt(totalSpent)}, Total deposited: ${fmt(totalIn)}, Fraud-flagged: ${fraudCount}. Transactions: ${txSummary}. Reply ONLY as valid JSON (no markdown): {"savings":"2 specific INR-relevant savings tips","behaviour":"2-sentence behaviour analysis","security":"1-sentence security assessment"}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const raw=data.content?.map(b=>b.text||'').join('')||'{}';
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const saveEl=document.getElementById('insight-savings');if(saveEl)saveEl.textContent=parsed.savings||'Maintain 3-6 months expenses as emergency fund in savings account.';
+    const behEl=document.getElementById('insight-behaviour');if(behEl)behEl.textContent=parsed.behaviour||'No unusual pattern detected.';
+    const secEl=document.getElementById('insight-security');if(secEl)secEl.textContent=parsed.security||`${fraudCount>0?`⚠️ ${fraudCount} fraud override(s). Monitor closely.`:'Account secure. No suspicious activity.'}`;
+  }catch(e){
+    const saveEl=document.getElementById('insight-savings');if(saveEl)saveEl.textContent=totalSpent>0?`Consider investing ${fmt(totalSpent*0.2)} (20% of spending) in a recurring deposit or mutual fund SIP.`:'No spending yet — consider starting a SIP or RD for long-term savings.';
+    const behEl=document.getElementById('insight-behaviour');if(behEl)behEl.textContent=withdrawCount>3?`Frequent withdrawals (${withdrawCount}) suggest unplanned cash usage. Consolidate withdrawals to save time and improve budget control.`:'Low and controlled transaction frequency. Good financial discipline observed.';
+    const secEl=document.getElementById('insight-security');if(secEl)secEl.textContent=fraudCount>0?`⚠️ ${fraudCount} transaction(s) overrode fraud detection — high risk. Review immediately.`:'Account security is strong. All transactions within normal limits.';
+  }
+}
+
+// AI CHAT
+function toggleChat(){chatOpen=!chatOpen;const p=document.getElementById('chat-panel');if(chatOpen){p.classList.add('open');document.getElementById('chat-input').focus();}else p.classList.remove('open');}
+function closeChat(){chatOpen=false;document.getElementById('chat-panel').classList.remove('open');}
+async function sendChat(){
+  const input=document.getElementById('chat-input');const msg=input.value.trim();if(!msg)return;
+  input.value='';appendChat(msg,'user');chatMessages.push({role:'user',content:msg});
+  const lid='cl-'+Date.now();appendChat('<div class="ai-loading"><span></span><span></span><span></span></div>','ai',lid,true);scrollChat();
+  const sys=`You are CogniBank India's AI assistant. User: ${currentUser?.name||'Guest'}, Balance: ${fmt(currentBalance)}, Country: India, Currency: INR. Be concise, helpful. 2-3 sentences max.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:sys,messages:chatMessages})});
+    const data=await res.json();
+    const reply=data.content?.map(b=>b.text||'').join('')||"Sorry, couldn't process that.";
+    chatMessages.push({role:'assistant',content:reply});
+    const el=document.getElementById(lid);if(el){el.textContent=reply;el.removeAttribute('id');}
+  }catch(e){const el=document.getElementById(lid);if(el){el.textContent='Connection error.';el.removeAttribute('id');}}
+  scrollChat();
+}
+function appendChat(text,role,id,isHtml=false){
+  const msgs=document.getElementById('chat-messages');const div=document.createElement('div');
+  div.className='chat-msg '+role;if(id)div.id=id;
+  if(isHtml)div.innerHTML=text;else div.textContent=text;
+  msgs.appendChild(div);scrollChat();
+}
+function scrollChat(){const m=document.getElementById('chat-messages');m.scrollTop=m.scrollHeight;}
+</script>
+</body>
+</html>
